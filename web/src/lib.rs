@@ -204,10 +204,10 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
       }
     }
     show_public_key.get().then(||
-      rsx!(KeyInspector { pem: private_key_pem.to_string() })
+      rsx!(KeyInspector { pem: public_key_pem.to_string() })
     )
     show_private_key.get().then(||
-      rsx!(KeyInspector { pem: public_key_pem.to_string() })
+      rsx!(KeyInspector { pem: private_key_pem.to_string() })
     )
   ))
 }
