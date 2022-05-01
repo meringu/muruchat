@@ -16,8 +16,11 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 cfg-if = "0.1.2"
-worker = "0.0.9"
+getrandom = { version = "0.2", features = ["js"] }
+hex = "0.3.1"
+rsa = "0.6.1"
 serde_json = "1.0.67"
+worker = "0.0.9"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

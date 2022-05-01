@@ -77,6 +77,10 @@ async fn foo(_: worker::Request, ctx: worker::RouteContext<()>) -> Result<String
     counter = counter + 1;
 
     store.put_bytes("counter", &counter.to_le_bytes())?.expiration_ttl(60).execute().await?;
+ 
+    let mut buf = [0u8; 16]; // 128 bit
+    getrandom::getrandom(&mut buf).map_err(|e| Error::RustError(e.to_string()))?;
+    let h = hex::encode(buf);
 
-    return Ok(format!("counter:{}", counter))
+    return Ok(format!("counter:{}, hex:{}", counter, h))
 }
