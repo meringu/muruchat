@@ -1000,6 +1000,7 @@ dependencies = [
  "pkcs8",
  "rand",
  "rsa",
+ "wasm-bindgen",
  "web-sys",
 ]
 

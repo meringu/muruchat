@@ -9,7 +9,7 @@ fn log_request(req: &Request) {
         Date::now().to_string(),
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     );
 }
 
@@ -32,8 +32,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get("/", |_, _| Response::ok("Hello from Workers!"))
         .get_async("/foo", |req, ctx| async move {
             match foo(req, ctx).await {
-                Ok(s) => return Response::ok(s),
-                Err(e) => return Response::error(e.to_string(), 500)
+                Ok(s) => Response::ok(s),
+                Err(e) => Response::error(e.to_string(), 500),
             }
         })
         .post_async("/form/:field", |mut req, ctx| async move {
@@ -65,22 +65,27 @@ async fn foo(_: worker::Request, ctx: worker::RouteContext<()>) -> Result<String
     let bytes = match store.get("counter").bytes().await? {
         Some(vec) => {
             let v: Vec<u8> = vec;
-            let ob: [u8; 4] = v.try_into().map_err(|_| Error::RustError("failed to get counter".to_owned()))?;
-            
-            ob
+            let ob: [u8; 4] = v
+                .try_into()
+                .map_err(|_| Error::RustError("failed to get counter".to_owned()))?;
 
+            ob
         }
         None => [0; 4],
     };
 
     let mut counter = u32::from_le_bytes(bytes);
-    counter = counter + 1;
+    counter += 1;
 
-    store.put_bytes("counter", &counter.to_le_bytes())?.expiration_ttl(60).execute().await?;
- 
+    store
+        .put_bytes("counter", &counter.to_le_bytes())?
+        .expiration_ttl(60)
+        .execute()
+        .await?;
+
     let mut buf = [0u8; 16]; // 128 bit
     getrandom::getrandom(&mut buf).map_err(|e| Error::RustError(e.to_string()))?;
     let h = hex::encode(buf);
 
-    return Ok(format!("counter:{}, hex:{}", counter, h))
+    return Ok(format!("counter:{}, hex:{}", counter, h));
 }

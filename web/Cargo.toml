@@ -15,7 +15,8 @@ pem-rfc7468 = "0.3.1"
 pkcs8 = "0.8.0"
 rand = "0.8.5"
 rsa = { version = "0.6.1", features = ["pem"] }
-web-sys = { version = "0.3.57", features = ["console", "Storage", "Window"] }
+web-sys = { version = "0.3.57", features = ["Clipboard", "console", "Navigator", "Storage", "Window"] }
+wasm-bindgen = "0.2.80"
 
 # For faster RSA key generation and manipulation
 [profile.dev.package.num-bigint-dig]
