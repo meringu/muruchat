@@ -7,6 +7,10 @@ use pem_rfc7468::LineEnding;
 use pkcs8::{EncodePrivateKey, DecodePrivateKey, spki::EncodePublicKey};
 use rsa::{RsaPrivateKey, RsaPublicKey};
 
+static USER: Atom<Option<User>> = |_| {
+  User::from_context()
+};
+
 #[derive(Clone)]
 struct User {
   private_key: RsaPrivateKey,
@@ -62,10 +66,6 @@ impl User {
 }
 
 pub fn app(cx: Scope) -> Element {
-  cx.use_hook(|_| {
-    cx.provide_context(User::from_context());
-  });
-
   cx.render(rsx!{
       Router {
           Route { to: "/", Home {} },
@@ -75,14 +75,10 @@ pub fn app(cx: Scope) -> Element {
 }
 
 fn Home(cx: Scope) -> Element {
-  let user = cx.use_hook(|_| cx.consume_context::<Option<User>>());
+  let user = use_read(&cx, USER);
+  let set_user = use_set(&cx, USER);
 
-  let generating = use_state(&cx, || false );
   let disabled = true;
-  let text_visiblity = match generating.get() {
-    true => "invisible",
-    false => "",
-  };
 
   cx.render(rsx!(
     div {
@@ -93,10 +89,10 @@ fn Home(cx: Scope) -> Element {
       }
     }
     match user {
-      Some(Some(user)) => rsx!(
+      Some(u) => rsx!(
         KeyViewer {
-          private_key_pem: user.private_key_pem(),
-          public_key_pem: user.public_key_pem()
+          private_key_pem: u.private_key_pem(),
+          public_key_pem: u.public_key_pem()
         }
         Contacts { }
         Chats { }
@@ -113,20 +109,11 @@ fn Home(cx: Scope) -> Element {
           button {
             class: "relative bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
             onclick: move |_| {
-              generating.set(true);
-
               let u = User::generate();
               u.save();
-              web_sys::window().unwrap().location().reload().unwrap();
+              set_user(Some(u));
             },
-            generating.then(|| rsx!(
-              div {
-                class: "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                SpinIcon {}
-              }
-            ))
             div {
-              class: "{text_visiblity}",
               "generate key"
             }
           }
@@ -143,7 +130,8 @@ fn Home(cx: Scope) -> Element {
 
 #[inline_props]
 fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Element {
-  let user = cx.use_hook(|_| cx.consume_context::<Option<User>>());
+  let user = use_read(&cx, USER);
+  let set_user = use_set(&cx, USER);
 
   let show_public_key = use_state(&cx, || false);
   let show_private_key = use_state(&cx, || false);
@@ -193,12 +181,12 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
         class: "relative bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full",
         onclick: move |_| {
           match user {
-            Some(Some(u)) => {
+            Some(u) => {
               u.delete();
-              web_sys::window().unwrap().location().reload().unwrap();
             },
             _ => {},
           }
+          set_user(None);
         },
         "delete key"
       }
@@ -256,29 +244,5 @@ fn KeyInspector(cx: Scope, pem: String) -> Element {
 fn Chat(cx: Scope) -> Element {
   cx.render(rsx! (
       div { "Chat" }
-  ))
-}
-
-fn SpinIcon(cx: Scope) -> Element {
-  cx.render(rsx!(
-    svg {
-      class: "animate-spin -ml-1 mr-3 h-5 w-5 text-white",
-      xmlns: "http://www.w3.org/2000/svg",
-      fill: "none",
-      view_box: "0 0 24 24",
-      circle {
-        class: "opacity-25",
-        cx: "12",
-        cy: "12",
-        r: "10",
-        stroke: "currentColor",
-        stroke_width: "4"
-      }
-      path {
-        class: "opacity-75",
-        fill: "currentColor",
-        d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      }
-    }
   ))
 }
