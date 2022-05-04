@@ -20,9 +20,11 @@ pub mod pages {
 
 mod state {
     mod address_book;
+    mod chats;
     mod user;
 
     pub use address_book::*;
+    pub use chats::*;
     pub use user::*;
 }
 

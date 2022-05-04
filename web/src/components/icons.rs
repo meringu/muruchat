@@ -24,6 +24,12 @@ pub fn ArrowLeftIcon(cx: Scope) -> Element {
     }))
 }
 
+pub fn ChevronRightIcon(cx: Scope) -> Element {
+    cx.render(rsx!(Base {
+        d: "M9 5l7 7-7 7".to_string()
+    }))
+}
+
 pub fn DuplicateIcon(cx: Scope) -> Element {
     cx.render(rsx!(
     Base {

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_router::Link;
+use dioxus_router::{use_router, Link};
 
 use crate::{components::*, state::*};
 
@@ -98,7 +98,7 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
             div {
                 class: "flex justify-center space-x-8 mt-2 md:mt-4",
                 button {
-                    class: "relative bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
+                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
                     onclick: |_| {
                         if !*show_public_key.get() {
                             show_private_key.set(false);
@@ -108,7 +108,7 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
                     "{public_key_button_text}"
                 }
                 button {
-                    class: "relative bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
+                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
                     onclick: |_| {
                         if !*show_private_key.get() {
                             show_public_key.set(false);
@@ -118,7 +118,7 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
                     "{private_key_button_text}"
                 }
                 button {
-                    class: "relative bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full",
+                    class: "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full",
                     onclick: move |_| {
                         let ok = web_sys::window().unwrap().confirm_with_message(
                             "Are you sure you want to delete your encryption key, contact, and chat lists? This won't delete messages in MuruChat, but you will need to add your key, contacts, and chats back to see any messages."
@@ -147,7 +147,11 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
 }
 
 fn Contacts(cx: Scope) -> Element {
+    let router = use_router(&cx);
+
     let address_book = use_read(&cx, ADDRESS_BOOK);
+    let chats = use_read(&cx, CHATS);
+    let set_chats = use_set(&cx, CHATS);
 
     let visible_count = 5;
 
@@ -169,12 +173,35 @@ fn Contacts(cx: Scope) -> Element {
             }
             ul {
                 class: "pt-4 md:pt-8 space-y-4",
-                address_book.iter().take(5).map(|(nickname, contact)| {
-                    let chat_id = contact.get_chat().id();
+                address_book.iter().take(5).map(|(public_key, nickname)| {
                     rsx!(
                         li {
                             div {
-                                "{nickname} - {chat_id}"
+                                class: "flex space-x-2",
+                                div {
+                                    "{nickname}"
+                                }
+                                button {
+                                    class: "text-blue-600 hover:text-blue-700 font-bold flex",
+                                    onclick: move |_| {
+                                        let mut new_chats = chats.clone();
+
+                                        let new_chat = Chat::from_public_key(public_key.clone());
+                                        let chat_id = new_chat.id();
+
+                                        // skip creating chat if it already exists.
+                                        if new_chats.add_chat(chat_id.clone(), new_chat).is_ok() {
+                                            new_chats.save();
+                                            set_chats(new_chats);
+                                        }
+                                        router.push_route(&format!("/chats/{}", chat_id), None, None);
+                                    },
+                                    "Start chat"
+                                    div {
+                                        class: "h-6 w-6",
+                                        ChevronRightIcon {}
+                                    }
+                                }
                             }
                         }
                     )
