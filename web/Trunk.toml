@@ -1,8 +1,0 @@
-[build]
-target = "index.html"
-dist = "dist"
-
-[[hooks]]
-stage = "build"
-command = "bash"
-command_arguments = ["-c", "if [[ ! $CF_PAGES ]]; then tailwindcss -i css/tailwind.css -o css/tailwind_compiled.css; fi"]

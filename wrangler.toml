@@ -11,10 +11,11 @@ kv_namespaces = [
 WORKERS_RS_VERSION = "0.0.9"
 
 [build]
+cwd = "worker"
 command = "cargo install -q worker-build && worker-build --release" # required
 
 [build.upload]
-dir = "build/worker"
+dir = "worker/build/worker"
 format = "modules"
 main = "./shim.mjs"
 
