@@ -18,8 +18,6 @@ mod pages {
     pub use home::*;
 }
 
-mod pki;
-
 mod state {
     mod address_book;
     mod chats;

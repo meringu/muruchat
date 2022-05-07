@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+muruchat = { path = "../lib" }
+
 dioxus = { version = "0.2.3", features = ["fermi", "web"] }
 dioxus-router = "0.2.2"
 getrandom = { version = "0.2.6", features = ["js"] }

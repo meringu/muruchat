@@ -608,6 +608,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "muruchat"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "k256",
+ "rand",
+ "serde",
+]
+
+[[package]]
 name = "object"
 version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1107,6 +1117,7 @@ dependencies = [
  "getrandom",
  "hex",
  "k256",
+ "muruchat",
  "rand",
  "serde",
  "serde_json",

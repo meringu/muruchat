@@ -2,7 +2,10 @@
 target = "web/index.html"
 dist = "dist"
 
+[watch]
+watch = ["web", "lib"]
+
 [[hooks]]
 stage = "build"
 command = "bash"
-command_arguments = ["-c", "if [[ ! $CF_PAGES ]]; then tailwindcss -i web/css/tailwind.css -o web/css/tailwind_compiled.css; fi"]
+command_arguments = ["-c", "if [[ ! $CF_PAGES ]]; then cd web; tailwindcss -i css/tailwind.css -o css/tailwind_compiled.css; fi"]

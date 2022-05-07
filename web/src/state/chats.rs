@@ -1,10 +1,8 @@
 use dioxus::prelude::*;
-// use serde::de::{Deserializer, SeqAccess, Visitor};
-// use serde::ser::{SerializeSeq, Serializer};
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_map, hash_set, HashMap, HashSet};
 
-use crate::pki::PublicKey;
+use muruchat::pki::PublicKey;
 
 pub static CHATS: Atom<Chats> = |_| Chats::from_context();
 

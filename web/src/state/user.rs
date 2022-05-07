@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use std::str::FromStr;
 
-use crate::pki::{PublicKey, SecretKey};
+use muruchat::pki::{PublicKey, SecretKey};
 
 pub static USER: Atom<Option<User>> = |_| User::from_context();
 

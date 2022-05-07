@@ -2,7 +2,9 @@ use dioxus::prelude::*;
 use dioxus_router::{use_router, Link};
 use std::str::FromStr;
 
-use crate::{components::*, pki::PublicKey, state::*};
+use muruchat::pki::PublicKey;
+
+use crate::{components::*, state::*};
 
 pub fn AddContact(cx: Scope) -> Element {
     let router = use_router(&cx);

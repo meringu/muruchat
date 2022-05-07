@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_map::Iter, HashMap};
 
-use crate::pki::PublicKey;
+use muruchat::pki::PublicKey;
 
 pub static ADDRESS_BOOK: Atom<AddressBook> = |_| AddressBook::from_context();
 
