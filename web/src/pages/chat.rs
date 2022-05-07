@@ -11,7 +11,7 @@ pub fn Chat(cx: Scope) -> Element {
 
     let chat_id = route.last_segment().unwrap();
 
-    let chat = match chats.get(&chat_id) {
+    let chat = match chats.get(chat_id) {
         Some(c) => c,
         None => return cx.render(rsx!(
             div {
@@ -35,9 +35,15 @@ pub fn Chat(cx: Scope) -> Element {
         )),
     };
 
-    let title: String = chat.iter().map(|public_key| {
-        address_book.who_is(public_key).unwrap_or("Unknown".to_string())
-    }).collect::<Vec<String>>().join(", ");
+    let title: String = chat
+        .iter()
+        .map(|public_key| {
+            address_book
+                .who_is(public_key)
+                .unwrap_or_else(|| "Unknown".to_string())
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
 
     cx.render(rsx!(
         div {

@@ -73,7 +73,7 @@ impl Chat {
 
         for public_key in peers.iter() {
             for (i, byte) in public_key.bytes().iter().enumerate() {
-                id[i] = id[i] ^ byte
+                id[i] ^= byte
             }
         }
 
@@ -89,13 +89,13 @@ impl Chat {
         Self::new(peers)
     }
 
-    pub fn from_public_keys(public_keys: Vec<PublicKey>) -> Self {
-        let mut peers = HashSet::new();
-        for public_key in public_keys {
-            peers.insert(public_key);
-        }
-        Self::new(peers)
-    }
+    // pub fn from_public_keys(public_keys: Vec<PublicKey>) -> Self {
+    //     let mut peers = HashSet::new();
+    //     for public_key in public_keys {
+    //         peers.insert(public_key);
+    //     }
+    //     Self::new(peers)
+    // }
 
     pub fn id(&self) -> String {
         self.id.clone()
@@ -105,9 +105,9 @@ impl Chat {
         self.peers.iter()
     }
 
-    pub fn group_chat_with(&self, public_key: PublicKey) -> Self {
-        let mut peers = self.peers.clone();
-        peers.insert(public_key);
-        Self::new(peers)
-    }
+    // pub fn group_chat_with(&self, public_key: PublicKey) -> Self {
+    //     let mut peers = self.peers.clone();
+    //     peers.insert(public_key);
+    //     Self::new(peers)
+    // }
 }

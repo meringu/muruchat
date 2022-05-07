@@ -65,7 +65,7 @@ fn Welcome(cx: Scope) -> Element {
 }
 
 #[inline_props]
-fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {  
+fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
     let user = use_read(&cx, USER);
     let set_user = use_set(&cx, USER);
 
@@ -96,8 +96,8 @@ fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
                         }
                         show_public_key.set(!show_public_key.get());
                     },
-                    match show_public_key.get() {
-                        &true => {
+                    match *show_public_key.get() {
+                        true => {
                             rsx!(
                                 span {
                                     class: "w-6 h-6",
@@ -106,7 +106,7 @@ fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
                                 "hide public key"
                             )
                         },
-                        &false => {
+                        false => {
                             rsx!(
                                 span {
                                     class: "w-6 h-6",
@@ -116,7 +116,6 @@ fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
                             )
                         },
                     }
-                    
                 }
                 button {
                     class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex",
@@ -126,8 +125,8 @@ fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
                         }
                         show_secret_key.set(!show_secret_key.get());
                     },
-                    match show_secret_key.get() {
-                        &true => {
+                    match *show_secret_key.get() {
+                        true => {
                             rsx!(
                                 span {
                                     class: "w-6 h-6",
@@ -136,7 +135,7 @@ fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {
                                 "hide secret key"
                             )
                         },
-                        &false => {
+                        false => {
                             rsx!(
                                 span {
                                     class: "w-6 h-6",
@@ -268,7 +267,7 @@ fn Chats(cx: Scope) -> Element {
                 ))
                 chats.iter().map(|(id, chat)| {
                     let title: String = chat.iter().map(|public_key| {
-                        address_book.who_is(public_key).unwrap_or("Unknown".to_string())
+                        address_book.who_is(public_key).unwrap_or_else(|| "Unknown".to_string())
                     }).collect::<Vec<String>>().join(", ");
 
                     rsx!(

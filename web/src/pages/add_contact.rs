@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use dioxus_router::{use_router, Link};
 use std::str::FromStr;
 
-use crate::{components::*, state::*, pki::PublicKey};
+use crate::{components::*, pki::PublicKey, state::*};
 
 pub fn AddContact(cx: Scope) -> Element {
     let router = use_router(&cx);
@@ -93,7 +93,7 @@ pub fn AddContact(cx: Scope) -> Element {
                                 return error.set("Please enter a public key for the contact.".to_string());
                             }
 
-                            let public_key = match PublicKey::from_str(&public_key) {
+                            let public_key = match PublicKey::from_str(public_key) {
                                 Ok(k) => k,
                                 Err(_) => return error.set("Failed to parse public key".to_string()),
                             };
@@ -112,7 +112,7 @@ pub fn AddContact(cx: Scope) -> Element {
 
                                     router.push_route("/", None, None);
                                 },
-                                Err(e) => error.set(e.to_string()),
+                                Err(e) => error.set(e),
                             }
                         },
                         div {

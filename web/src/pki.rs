@@ -1,8 +1,15 @@
 use k256::elliptic_curve::sec1::ToEncodedPoint;
-use std::{fmt, str::FromStr, hash::{Hash, Hasher}};
-use serde::{de::{self, Visitor}, Serialize, Serializer, Deserialize, Deserializer};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
-#[derive(PartialEq, Clone, std::cmp::Eq)]
+#[derive(Debug, Clone, std::cmp::Eq)]
 pub struct PublicKey(k256::PublicKey);
 
 #[derive(PartialEq, Clone)]
@@ -34,10 +41,17 @@ impl SecretKey {
     }
 }
 
+impl PartialEq for PublicKey {
+    fn eq(&self, other: &Self) -> bool { 
+        self.bytes() == other.bytes()
+    }
+}
+
+
 impl Hash for PublicKey {
     fn hash<H>(&self, state: &mut H)
     where
-        H: Hasher
+        H: Hasher,
     {
         state.write(&self.bytes());
         state.finish();
@@ -66,7 +80,7 @@ impl FromStr for PublicKey {
 
         k256::PublicKey::from_sec1_bytes(&decoded)
             .map_err(|_| Self::Err {})
-            .map(|inner| Self(inner))
+            .map(Self)
     }
 }
 
@@ -78,7 +92,7 @@ impl FromStr for SecretKey {
 
         k256::SecretKey::from_be_bytes(&decoded)
             .map_err(|_| Self::Err {})
-            .map(|inner| Self(inner))
+            .map(Self)
     }
 }
 
@@ -111,7 +125,8 @@ impl<'de> Visitor<'de> for PublicKeyVisitor {
     where
         E: de::Error,
     {
-        PublicKey::from_str(value).map_err(|_| E::custom(format!("failed to parse public key: {}", value)))
+        PublicKey::from_str(value)
+            .map_err(|_| E::custom(format!("failed to parse public key: {}", value)))
     }
 }
 
@@ -124,15 +139,30 @@ impl<'de> Deserialize<'de> for PublicKey {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
+    extern crate wasm_bindgen_test;
+
+    use wasm_bindgen_test::*;
+
     use super::*;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_public_key_length() {
         let secret = SecretKey::generate();
         let public = secret.public_key();
 
-        assert_eq!(public.to_string().len(), 33);
+        assert_eq!(public.bytes().len(), 33);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_serialize_deserialize() {
+        let secret = SecretKey::generate();
+        let public = secret.public_key();
+
+        let ser = serde_json::to_string(&public).unwrap();
+        let de_ser: PublicKey = serde_json::from_str(&ser).unwrap();
+
+        assert_eq!(de_ser, public);
     }
 }

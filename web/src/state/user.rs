@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use std::str::FromStr;
 
-use crate::pki::{SecretKey, PublicKey};
+use crate::pki::{PublicKey, SecretKey};
 
 pub static USER: Atom<Option<User>> = |_| User::from_context();
 
@@ -18,12 +18,11 @@ impl User {
 
     pub fn from_context() -> Option<Self> {
         let storage = web_sys::window().unwrap().local_storage().unwrap().unwrap();
-        match storage.get_item("secret_key").unwrap() {
-            Some(secret_key) => {
-                Some(Self::from_secret_key(SecretKey::from_str(&secret_key).unwrap()))
-            }
-            None => None,
-        }
+        storage.get_item("secret_key").unwrap().map(|secret_key|
+            Self::from_secret_key(
+                SecretKey::from_str(&secret_key).unwrap(),
+            )
+        )
     }
 
     pub fn from_secret_key(secret_key: SecretKey) -> Self {
