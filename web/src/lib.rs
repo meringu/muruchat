@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-pub mod components {
+mod components {
     mod container;
     mod icons;
 
@@ -8,7 +8,7 @@ pub mod components {
     pub use icons::*;
 }
 
-pub mod pages {
+mod pages {
     mod add_contact;
     mod chat;
     mod home;
@@ -17,6 +17,8 @@ pub mod pages {
     pub use chat::*;
     pub use home::*;
 }
+
+mod pki;
 
 mod state {
     mod address_book;
@@ -30,15 +32,14 @@ mod state {
 
 use dioxus::prelude::*;
 use dioxus_router::{Route, Router};
-
-use crate::pages::*;
+use pages::*;
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         Router {
             Route { to: "/", Home {} },
             Route { to: "/contacts/add", AddContact {} },
-            Route { to: "/chats/:other_pub", Chat {} },
+            Route { to: "/chats/:chat_id", Chat {} },
         }
     })
 }

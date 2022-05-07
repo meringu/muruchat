@@ -1,10 +1,8 @@
 use dioxus::prelude::*;
 use dioxus_router::{use_router, Link};
-use pkcs8::spki::DecodePublicKey;
+use std::str::FromStr;
 
-use rsa::RsaPublicKey;
-
-use crate::{components::*, state::*};
+use crate::{components::*, state::*, pki::PublicKey};
 
 pub fn AddContact(cx: Scope) -> Element {
     let router = use_router(&cx);
@@ -15,7 +13,7 @@ pub fn AddContact(cx: Scope) -> Element {
     let set_address_book = use_set(&cx, ADDRESS_BOOK);
 
     let nickname = use_state(&cx, || "".to_string());
-    let public_key_pem = use_state(&cx, || "".to_string());
+    let public_key = use_state(&cx, || "".to_string());
 
     let error = use_state(&cx, || "".to_string());
     let has_error = error.get() != "";
@@ -60,17 +58,16 @@ pub fn AddContact(cx: Scope) -> Element {
                 div {
                     label {
                         class: "block text-gray-700 text-sm font-bold mb-2",
-                        r#for: "public_key_pem",
+                        r#for: "public_key",
                         "Public Key"
                     }
-                    textarea {
-                        rows: "10",
-                        cols: "65",
-                        class: "shadow border rounded w-full py-2 px-3 text-gray-700 font-mono",
-                        id: "public_key_pem",
-                        placeholder: "-----BEGIN PUBLIC KEY-----\n\n...\n\n-----END PUBLIC KEY-----",
-                        value: "{public_key_pem}",
-                        oninput: move |evt| public_key_pem.set(evt.value.clone())
+                    input {
+                        class: "shadow border rounded w-full py-2 px-3 text-gray-700",
+                        id: "public_key",
+                        r#type: "text",
+                        placeholder: "Enter a public key",
+                        value: "{public_key}",
+                        oninput: move |evt| public_key.set(evt.value.clone())
                     }
                 }
                 has_error.then(|| {
@@ -92,13 +89,13 @@ pub fn AddContact(cx: Scope) -> Element {
                                 return error.set("Please enter a nickname for the contact.".to_string());
                             }
 
-                            if public_key_pem.get() == "" {
-                                return error.set("Please enter an RSA public key for the contact.".to_string());
+                            if public_key.get() == "" {
+                                return error.set("Please enter a public key for the contact.".to_string());
                             }
 
-                            let public_key = match RsaPublicKey::from_public_key_pem(&public_key_pem) {
+                            let public_key = match PublicKey::from_str(&public_key) {
                                 Ok(k) => k,
-                                Err(_) => return error.set("Failed to parse RSA public key".to_string()),
+                                Err(_) => return error.set("Failed to parse public key".to_string()),
                             };
 
                             if let Some(u) = user {

@@ -19,8 +19,8 @@ pub fn Home(cx: Scope) -> Element {
                 div {
                     class: "pt-8 md:pt-16 space-y-8 md:space-y-16 m-2 md:m-8",
                     KeyViewer {
-                        private_key_pem: u.private_key_pem(),
-                        public_key_pem: u.public_key_pem()
+                        secret_key: u.secret_key().to_string(),
+                        public_key: u.public_key().to_string(),
                     }
                     Contacts { }
                     Chats { }
@@ -65,27 +65,18 @@ fn Welcome(cx: Scope) -> Element {
 }
 
 #[inline_props]
-fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Element {
+fn KeyViewer(cx: Scope, secret_key: String, public_key: String) -> Element {  
     let user = use_read(&cx, USER);
     let set_user = use_set(&cx, USER);
 
     let address_book = use_read(&cx, ADDRESS_BOOK);
     let set_address_book = use_set(&cx, ADDRESS_BOOK);
 
+    let chats = use_read(&cx, CHATS);
+    let set_chats = use_set(&cx, CHATS);
+
     let show_public_key = use_state(&cx, || false);
-    let show_private_key = use_state(&cx, || false);
-
-    let public_key_button_text = if *show_public_key.get() {
-        "hide public key"
-    } else {
-        "show public key"
-    };
-
-    let private_key_button_text = if *show_private_key.get() {
-        "hide private key"
-    } else {
-        "show private key"
-    };
+    let show_secret_key = use_state(&cx, || false);
 
     cx.render(rsx! (
         div {
@@ -98,24 +89,63 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
             div {
                 class: "flex justify-center space-x-8 mt-2 md:mt-4",
                 button {
-                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
+                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex",
                     onclick: |_| {
                         if !*show_public_key.get() {
-                            show_private_key.set(false);
+                            show_secret_key.set(false);
                         }
                         show_public_key.set(!show_public_key.get());
                     },
-                    "{public_key_button_text}"
+                    match show_public_key.get() {
+                        &true => {
+                            rsx!(
+                                span {
+                                    class: "w-6 h-6",
+                                    ChevronUpIcon {}
+                                }
+                                "hide public key"
+                            )
+                        },
+                        &false => {
+                            rsx!(
+                                span {
+                                    class: "w-6 h-6",
+                                    ChevronDownIcon {}
+                                }
+                                "show public key"
+                            )
+                        },
+                    }
+                    
                 }
                 button {
-                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full",
+                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex",
                     onclick: |_| {
-                        if !*show_private_key.get() {
+                        if !*show_secret_key.get() {
                             show_public_key.set(false);
                         }
-                        show_private_key.set(!show_private_key.get());
+                        show_secret_key.set(!show_secret_key.get());
                     },
-                    "{private_key_button_text}"
+                    match show_secret_key.get() {
+                        &true => {
+                            rsx!(
+                                span {
+                                    class: "w-6 h-6",
+                                    ChevronUpIcon {}
+                                }
+                                "hide secret key"
+                            )
+                        },
+                        &false => {
+                            rsx!(
+                                span {
+                                    class: "w-6 h-6",
+                                    ChevronDownIcon {}
+                                }
+                                "show secret key"
+                            )
+                        },
+                    }
                 }
                 button {
                     class: "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full",
@@ -131,16 +161,19 @@ fn KeyViewer(cx: Scope, private_key_pem: String, public_key_pem: String) -> Elem
 
                             address_book.delete();
                             set_address_book(AddressBook::default());
+
+                            chats.delete();
+                            set_chats(Chats::default());
                         }
                     },
                     "clear session"
                 }
             }
             show_public_key.get().then(||
-                rsx!(KeyInspector { pem: public_key_pem.to_string() })
+                rsx!(KeyInspector { pem: public_key.to_string() })
             )
-            show_private_key.get().then(||
-                rsx!(KeyInspector { pem: private_key_pem.to_string() })
+            show_secret_key.get().then(||
+                rsx!(KeyInspector { pem: secret_key.to_string() })
             )
         }
     ))
@@ -217,15 +250,47 @@ fn Contacts(cx: Scope) -> Element {
 }
 
 fn Chats(cx: Scope) -> Element {
+    let chats = use_read(&cx, CHATS);
+    let address_book = use_read(&cx, ADDRESS_BOOK);
+
     cx.render(rsx!(
         Container {
             h2 {
                 class: "font-bold text-xl md:text-3xl",
                 "Chats"
             }
-            div {
-                class: "pt-4 md:pt-8",
-                "No chats yet!"
+            ul {
+                class: "pt-4 md:pt-8 space-y-4",
+                chats.none().then(|| rsx!(
+                    li {
+                        "No chats yet!"
+                    }
+                ))
+                chats.iter().map(|(id, chat)| {
+                    let title: String = chat.iter().map(|public_key| {
+                        address_book.who_is(public_key).unwrap_or("Unknown".to_string())
+                    }).collect::<Vec<String>>().join(", ");
+
+                    rsx!(
+                        li {
+                            div {
+                                class: "flex space-x-2",
+                                div {
+                                    "{title}"
+                                }
+                                Link {
+                                    class: "text-blue-600 hover:text-blue-700 font-bold flex",
+                                    to: "/chats/{id}",
+                                    "Go to chat"
+                                    div {
+                                        class: "h-6 w-6",
+                                        ChevronRightIcon {}
+                                    }
+                                }
+                            }
+                        }
+                    )
+                })
             }
         }
     ))
