@@ -1,4 +1,4 @@
-use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::{elliptic_curve::sec1::ToEncodedPoint, ecdsa::{self, SigningKey, VerifyingKey, signature::{Signer, Verifier}}};
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
@@ -16,16 +16,32 @@ pub struct PublicKey(k256::PublicKey);
 pub struct SecretKey(k256::SecretKey);
 
 #[derive(Debug)]
+pub struct Signature(ecdsa::Signature);
+
+#[derive(Debug)]
 pub struct PublicKeyParseError;
 
 #[derive(Debug)]
 pub struct SecretKeyParseError;
+
+#[derive(Debug)]
+pub struct SignatureParseError;
 
 struct PublicKeyVisitor;
 
 impl PublicKey {
     pub fn bytes(&self) -> [u8; 33] {
         self.0.to_encoded_point(true).as_bytes().try_into().unwrap()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PublicKeyParseError> {
+        k256::PublicKey::from_sec1_bytes(
+            bytes
+        ).map_err(|_| PublicKeyParseError {}).map(Self)
+    }
+
+    pub fn verify(&self, bytes: &[u8], signature: &Signature) -> bool {
+        VerifyingKey::from(&self.0).verify(bytes, &signature.0).is_ok()
     }
 }
 
@@ -38,6 +54,26 @@ impl SecretKey {
 
     pub fn public_key(&self) -> PublicKey {
         PublicKey(self.0.public_key())
+    }
+
+    pub fn sign(&self, bytes: &[u8]) -> Signature {
+        let sig: ecdsa::Signature = SigningKey::from(&self.0).sign(bytes);
+
+        Signature(sig)
+    }
+}
+
+impl Signature {
+    pub fn bytes(&self) -> &[u8] {
+        use k256::ecdsa::signature::Signature;
+
+        self.0.as_bytes()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureParseError> {
+        ecdsa::signature::Signature::from_bytes(
+            bytes
+        ).map_err(|_| SignatureParseError {}).map(Self)
     }
 }
 
@@ -72,15 +108,19 @@ impl fmt::Display for SecretKey {
     }
 }
 
+impl fmt::Display for Signature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+
 impl FromStr for PublicKey {
     type Err = PublicKeyParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let decoded = hex::decode(s).map_err(|_| Self::Err {})?;
 
-        k256::PublicKey::from_sec1_bytes(&decoded)
-            .map_err(|_| Self::Err {})
-            .map(Self)
+        Self::from_bytes(&decoded)
     }
 }
 
@@ -91,6 +131,16 @@ impl FromStr for SecretKey {
         let decoded = hex::decode(s).map_err(|_| Self::Err {})?;
 
         k256::SecretKey::from_be_bytes(&decoded)
+            .map_err(|_| Self::Err {})
+            .map(Self)
+    }
+}
+
+impl FromStr for Signature {
+    type Err = SignatureParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ecdsa::Signature::from_str(&s)
             .map_err(|_| Self::Err {})
             .map(Self)
     }

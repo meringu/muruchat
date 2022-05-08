@@ -3,11 +3,6 @@ name = "worker"
 version = "0.1.0"
 edition = "2021"
 
-# [workspace]
-# members = [
-#   "web",
-# ]
-
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -15,8 +10,11 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
+muruchat = { path = "../lib" }
+
 cfg-if = "0.1.2"
 getrandom = { version = "0.2", features = ["js"] }
+futures-util = "0.3.21"
 hex = "0.3.1"
 rsa = "0.6.1"
 serde_json = "1.0.67"

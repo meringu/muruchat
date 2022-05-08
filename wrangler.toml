@@ -1,11 +1,18 @@
 name = "chat"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2022-04-30"
+# compatibility_date = "2022-04-30"
+compatibility_date = "2021-12-01"
+compatibility_flags = [ "durable_object_fetch_allows_relative_url" ]
 
-kv_namespaces = [ 
-  { binding = "chat", id = "386ff10a2c3c4380a767ec6b12a7fdc3", preview_id = "89fb8c2319fd46428559177c1a4eb259" }
+[durable_objects]
+bindings = [
+  { name = "CHAT", class_name = "Chat" }
 ]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Chat"]
 
 [vars]
 WORKERS_RS_VERSION = "0.0.9"

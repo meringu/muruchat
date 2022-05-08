@@ -4,6 +4,7 @@ dist = "dist"
 
 [watch]
 watch = ["web", "lib"]
+ignore = ["web/css"]
 
 [[hooks]]
 stage = "build"
