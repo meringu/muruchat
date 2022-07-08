@@ -1,4 +1,3 @@
-use serde_json::json;
 use worker::*;
 
 use muruchat::{pki::{Signature, PublicKey}, handshake::Challenge};
@@ -18,14 +17,18 @@ fn log_request(req: &Request) {
 }
 
 #[durable_object]
-pub struct Chat {
+pub struct Inbox {
     counter: usize,
+
+    // used for durable object
+    #[allow(dead_code)]
     state: State,
+    #[allow(dead_code)]
     env: Env,
 }
 
 #[durable_object]
-impl DurableObject for Chat {
+impl DurableObject for Inbox {
     fn new(state: State, env: Env) -> Self {
         Self {
             counter: 0,
@@ -56,24 +59,22 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     let router = Router::new();
 
     router
-        .get_async("/chat", |req, ctx| async move {
-            console_log!("chat started");
-            // let chat_id = ctx.param("chat_id").unwrap();
-
+        .get_async("/chat", |req, _ctx| async move {
             // ensure websocket
             if req.headers().get("Upgrade")? != Some("websocket".to_string()) {    
                 return Response::error("Expected Upgrade: websocket", 426);
             }
 
-            console_log!("upgrade ok");
-
             // accept connection
             let web_socker_pair = WebSocketPair::new()?;
             web_socker_pair.server.accept()?;
 
+            // process messages async
             wasm_bindgen_futures::spawn_local(async move {
+                // start finite state machine to track handshake
                 let mut fsm = FSM::WaitingForPK;
 
+                // open stream
                 let mut event_stream = web_socker_pair.server.events().expect("could not open stream");
 
                 while let Some(event) = event_stream.next().await {
@@ -82,11 +83,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                             if let Some(bytes) = msg.bytes() {
                                 let next = match fsm {
                                     FSM::WaitingForPK => {
+                                        // read public key from client and respond with a challenge.
                                         match PublicKey::from_bytes(&bytes) {
                                             Ok(pk) => {
                                                 let challenge = Challenge::new();
 
-                                                if let Err(_) = web_socker_pair.server.send_with_bytes(&challenge.bytes()) {
+                                                if web_socker_pair.server.send_with_bytes(&challenge.bytes()).is_err() {
                                                     break;
                                                 }
 
@@ -96,6 +98,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                                         }
                                     }
                                     FSM::WaitingForSignature(pk, challenge) => {
+                                        // verify the signature against challenge
                                         match Signature::from_bytes(&bytes) {
                                             Ok(sig) => {
                                                 if !challenge.verify(&pk, &sig) {
@@ -108,13 +111,15 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                                         }
                                     },
                                     FSM::Authed(pk) => {
+                                        // run echo server in a loop
                                         if let Ok(s) = String::from_utf8(bytes.to_vec()) {
                                             let res = format!("Hello, {}!", s);
 
-                                            if let Err(_) = web_socker_pair.server.send_with_bytes(&res.as_bytes()) {
+                                            if web_socker_pair.server.send_with_bytes(&res.as_bytes()).is_err() {
                                                 break;
                                             }
                                         }
+
                                         FSM::Authed(pk)
                                     }
                                 };
@@ -122,70 +127,18 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                                 fsm = next;
                             }
                         },
-                        WebsocketEvent::Close(event) => break,
+                        WebsocketEvent::Close(_event) => break,
                     }
                 }
             });
 
             Response::from_websocket(web_socker_pair.client)
         })
-        .on_async("/foo", |req, ctx| async move {
-            match foo(req, ctx).await {
-                Ok(s) => Response::ok(s),
-                Err(e) => Response::error(e.to_string(), 500),
-            }
-        })
         .on_async("/counter", |_req, ctx| async move {
-            let namespace = ctx.durable_object("TEST")?;
+            let namespace = ctx.durable_object("INBOX")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
             stub.fetch_with_str("/messages").await
         })
-        .post_async("/form/:field", |mut req, ctx| async move {
-            if let Some(name) = ctx.param("field") {
-                let form = req.form_data().await?;
-                match form.get(name) {
-                    Some(FormEntry::Field(value)) => {
-                        return Response::from_json(&json!({ name: value }))
-                    }
-                    Some(FormEntry::File(_)) => {
-                        return Response::error("`field` param in form shouldn't be a File", 422);
-                    }
-                    None => return Response::error("Bad Request", 400),
-                }
-            }
-
-            Response::error("Bad Request", 400)
-        })
         .run(req, env)
         .await
-}
-
-async fn foo(_: worker::Request, ctx: worker::RouteContext<()>) -> Result<String> {
-    let store = ctx.kv("chat")?;
-    let bytes = match store.get("counter").bytes().await? {
-        Some(vec) => {
-            let v: Vec<u8> = vec;
-            let ob: [u8; 4] = v
-                .try_into()
-                .map_err(|_| Error::RustError("failed to get counter".to_owned()))?;
-
-            ob
-        }
-        None => [0; 4],
-    };
-
-    let mut counter = u32::from_le_bytes(bytes);
-    counter += 1;
-
-    store
-        .put_bytes("counter", &counter.to_le_bytes())?
-        .expiration_ttl(60)
-        .execute()
-        .await?;
-
-    let mut buf = [0u8; 16]; // 128 bit
-    getrandom::getrandom(&mut buf).map_err(|e| Error::RustError(e.to_string()))?;
-    let h = hex::encode(buf);
-
-    return Ok(format!("counter:{}, hex:{}", counter, h));
 }

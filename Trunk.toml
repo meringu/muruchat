@@ -4,7 +4,10 @@ dist = "dist"
 
 [watch]
 watch = ["web", "lib"]
-ignore = ["web/css"]
+ignore = ["web/css", "lib/target"]
+
+[serve]
+address = "0.0.0.0"
 
 [[hooks]]
 stage = "build"

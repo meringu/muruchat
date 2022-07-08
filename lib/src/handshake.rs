@@ -20,17 +20,24 @@ impl Challenge {
         secret_key.sign(&self.0)
     }
 
+
     pub fn verify(&self, public_key: &PublicKey, signature: &Signature) -> bool {
         public_key.verify(&self.0, signature)
     }
 
     pub fn bytes(&self) -> [u8; 32] {
-        self.0.clone()
+        self.0
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, ChallengeParseError> {
         bytes.try_into().map_err(|_| ChallengeParseError {}).map(Self)
     } 
+}
+
+impl Default for Challenge {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -51,18 +58,18 @@ mod tests {
         let sig = challenge.sign(&secret);
         let verified = challenge.verify(&public, &sig);
 
-        assert_eq!(verified, true);
+        assert!(verified);
     }
 
     #[wasm_bindgen_test]
     fn test_handshake_fail() {
         let secret = SecretKey::generate();
-        let public = SecretKey::generate().public_key();
+        let public = SecretKey::generate().public_key(); // public key from a different private key
 
         let challenge = Challenge::new();
         let sig = challenge.sign(&secret);
         let verified = challenge.verify(&public, &sig);
 
-        assert_eq!(verified, false);
+        assert!(!verified);
     }
 }

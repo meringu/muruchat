@@ -4,7 +4,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
-    fmt,
+    fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
     str::FromStr,
 };
@@ -18,6 +18,51 @@ pub struct SecretKey(k256::SecretKey);
 #[derive(Debug)]
 pub struct Signature(ecdsa::Signature);
 
+struct SignatureVisitor;
+
+impl<'de> Visitor<'de> for SignatureVisitor {
+    type Value = Signature;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a secp256k1 signature")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Signature, E>
+    where
+        E: de::Error,
+    {
+        let bytes = hex::decode(value).map_err(|e| de::Error::custom(e))?;
+        let sig = Signature::from_bytes(&bytes).map_err(|e| de::Error::custom(e))?;
+
+        Ok(sig)
+    }
+}
+
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de> {
+        deserializer.deserialize_str(SignatureVisitor)
+    }
+
+    fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Default implementation just delegates to `deserialize` impl.
+        *place = Deserialize::deserialize(deserializer)?;
+        Ok(())
+    }
+}
+
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+        serializer.collect_str(&hex::encode(self.bytes()))
+    }
+}
+
 #[derive(Debug)]
 pub struct PublicKeyParseError;
 
@@ -26,6 +71,12 @@ pub struct SecretKeyParseError;
 
 #[derive(Debug)]
 pub struct SignatureParseError;
+
+impl Display for SignatureParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("failed to parse signature")
+    }
+}
 
 struct PublicKeyVisitor;
 
@@ -110,7 +161,7 @@ impl fmt::Display for SecretKey {
 
 impl fmt::Display for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "{}", self.0)
     }
 }
 
@@ -140,7 +191,7 @@ impl FromStr for Signature {
     type Err = SignatureParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ecdsa::Signature::from_str(&s)
+        ecdsa::Signature::from_str(s)
             .map_err(|_| Self::Err {})
             .map(Self)
     }

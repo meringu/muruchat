@@ -115,9 +115,9 @@ enum FSM {
     Authed,
 }
 
-fn do_ws<'a>(chat_id: &'a str, public_key: &PublicKey, secret_key: &SecretKey) -> Result<(), wasm_bindgen::JsValue> {
+fn do_ws<'a>(_chat_id: &'a str, public_key: &PublicKey, secret_key: &SecretKey) -> Result<(), wasm_bindgen::JsValue> {
     // open connection
-    let ws = web_sys::WebSocket::new(&"ws://127.0.0.1:8787/chat")?;
+    let ws = web_sys::WebSocket::new("ws://127.0.0.1:8787/chat")?;
     ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
 
     let cloned_pk = public_key.clone();
@@ -147,12 +147,12 @@ fn do_ws<'a>(chat_id: &'a str, public_key: &PublicKey, secret_key: &SecretKey) -
                         }
                     };
 
-                    if let Err(e) = cloned_ws.send_with_u8_array(&sig.bytes()) {
+                    if let Err(e) = cloned_ws.send_with_u8_array(sig.bytes()) {
                         web_sys::console::error_1(&e);
                         return;
                     };
 
-                    if let Err(e) = cloned_ws.send_with_u8_array(&"World".as_bytes()) {
+                    if let Err(e) = cloned_ws.send_with_u8_array("World".as_bytes()) {
                         web_sys::console::error_1(&e);
                         return;
                     };

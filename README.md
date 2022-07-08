@@ -4,11 +4,11 @@ TODO: description of what and how
 
 ## Local development
 
-### Worker
-
 **Prerequisites**
 
-- [Wrangler](https://developers.cloudflare.com/workers/cli-wrangler/install-update/)
+It is recommended to develop in the devcontainer that includes all the software prerequisites.
+
+### Worker
 
 **Running**
 
@@ -18,17 +18,6 @@ wrangler dev
 ```
 
 ### Web
-
-**Prerequisites**
-
-- [Rust](https://rustup.rs/)
-- [Trunk](https://trunkrs.dev/)
-
-Add the Rust wasm target
-
-```
-rustup target add wasm32-unknown-unknown
-```
 
 **Running**
 
