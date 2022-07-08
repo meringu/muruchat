@@ -6,7 +6,7 @@ TODO: description of what and how
 
 **Prerequisites**
 
-It is recommended to develop in the devcontainer that includes all the software prerequisites.
+It is recommended to develop in the devcontainer as it includes all the software prerequisites.
 
 ### Worker
 
